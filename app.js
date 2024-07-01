@@ -26,11 +26,43 @@ try {
             })
             .then(function(body) {
                 console.log(body);
-
+                const synth = window.speechSynthesis;
                 const utterThis = new SpeechSynthesisUtterance(body)
 
-                window.speechSynthesis.speak(utterThis);
+                const voices = synth.getVoices()
 
+                utterThis.pitch = 1;
+                utterThis.rate = 1;
+                utterThis.voice = voices[0];
+                console.log("text is being spoken 1: ", synth.speaking);
+                synth.speak(utterThis);
+                console.log("text is being spoken 2: ", synth.speaking);
+
+                synth.resume()
+
+                utterThis.onend = function () {
+                    console.log("utter ended");
+                }
+
+                utterThis.onpause = function () {
+                    console.log("utter pause");
+                }
+
+                utterThis.onstart = function () {
+                    console.log("utter started");
+                }
+
+                utterThis.onresume = function () {
+                    console.log("utter ended");
+                }
+
+                utterThis.onerror = function () {
+                    console.error("utter errored");
+                }
+
+                utterThis.onmark = function () {
+                    console.log("utter marked or whatever that means");
+                }
             })
             .catch(function(err) {
                 console.error(err);
