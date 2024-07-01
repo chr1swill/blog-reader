@@ -25,43 +25,62 @@ try {
                 return doc.body.textContent || "";
             })
             .then(function(body) {
-                console.log(body);
+                console.assert("There was not body text return form the fetch", body);
+                let chars = 0;
+                const arr = body.split("")
+                while (chars < arr.length) {
+                    chars++;
+                }
+
+                console.log("total num of chars: ", chars);
+
                 const synth = window.speechSynthesis;
-                const utterThis = new SpeechSynthesisUtterance(body)
+                const utterThis = new SpeechSynthesisUtterance(body);
 
-                const voices = synth.getVoices()
+                synth.onvoiceschanged = () => {
+                    const voices = synth.getVoices();
+                    if (voices.length > 0) {
+                        utterThis.voice = voices[0];
+                        utterThis.pitch = '1';
+                        utterThis.rate = '1';
 
-                utterThis.pitch = 1;
-                utterThis.rate = 1;
-                utterThis.voice = voices[0];
-                console.log("text is being spoken 1: ", synth.speaking);
-                synth.speak(utterThis);
-                console.log("text is being spoken 2: ", synth.speaking);
+                        console.log("text is being spoken 1: ", synth.speaking);
+                        synth.speak(utterThis);
+                        console.log("text is being spoken 2: ", synth.speaking);
 
-                synth.resume()
+                        utterThis.onend = function() {
+                            console.log("utter ended");
+                        };
 
-                utterThis.onend = function () {
-                    console.log("utter ended");
-                }
+                        utterThis.onpause = function() {
+                            console.log("utter pause");
+                        };
 
-                utterThis.onpause = function () {
-                    console.log("utter pause");
-                }
+                        utterThis.onstart = function() {
+                            console.log("utter started");
+                        };
 
-                utterThis.onstart = function () {
-                    console.log("utter started");
-                }
+                        utterThis.onresume = function() {
+                            console.log("utter resumed");
+                        };
 
-                utterThis.onresume = function () {
-                    console.log("utter ended");
-                }
+                        utterThis.onerror = function() {
+                            console.error("utter errored");
+                        };
 
-                utterThis.onerror = function () {
-                    console.error("utter errored");
-                }
+                        utterThis.onmark = function() {
+                            console.log("utter marked or whatever that means");
+                        };
+                    } else {
+                        console.error("No voices available");
+                    }
+                };
+                synth.onvoiceschanged();
 
-                utterThis.onmark = function () {
-                    console.log("utter marked or whatever that means");
+                // Ensure the voices are loaded
+                if (synth.getVoices().length > 0) {
+                    console.log("running");
+                    synth.onvoiceschanged();
                 }
             })
             .catch(function(err) {
