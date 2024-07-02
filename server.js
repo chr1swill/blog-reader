@@ -3,6 +3,7 @@ import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ejs from 'ejs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,13 +68,24 @@ const server = http.createServer(function(req, res) {
         return;
     }
 
-    if (reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') {
-        serverStaticFile(res, path.join(__dirname,'index.html'), 'text.html');
+    if (reqUrl.pathname === '/app.js') {
+        serverStaticFile(res, path.join(__dirname, "src", "js", 'app.js'), 'application/javascript');
         return;
     }
 
-    if (reqUrl.pathname === '/app.js') {
-        serverStaticFile(res, path.join(__dirname, 'app.js'), 'application/javascript');
+    if (reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') {
+        ejs.renderFile(path.join(__dirname, "src", "templates", "views", "index.ejs"), function(err, str) {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Internal Server Error');
+                return;
+            }
+
+            if (!res.headersSent) {
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+            }
+            res.end(str);
+        })
         return;
     }
 
