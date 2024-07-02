@@ -121,7 +121,7 @@ const server = http.createServer(function(req, res) {
                     throw new Error("Parsing the body of the fetch document yeilded no text content: ", formData.q);
                 }
 
-                db.run(`INSERT INTO url (path, text_content) VALUES (${formData.q}, ${textContent});`, function(err) {
+                db.run(`INSERT INTO url (path, text_content) VALUES (?, ?);`, [formData.q, textContent],  function(err) {
                     if (err) {
                         console.error(err.message);
                         return;
