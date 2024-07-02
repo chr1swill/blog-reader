@@ -5,6 +5,31 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ejs from 'ejs';
 import { JSDOM } from 'jsdom';
+import sqlite3 from 'sqlite3';
+
+const sqlite3Verbose = sqlite3.verbose();
+const db = new sqlite3Verbose.Database(':memory:', function(err) {
+    if (err) {
+        console.error(err.message);
+    }
+
+    console.log("Connected to the SQLite database");
+});
+
+db.serialize(function() {
+    db.run(`CREATE TABLE IF NOT EXIST url (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        path TEXT NOT NULL, 
+        text_content TEXT NOT NULL
+        );`, function(err) {
+
+        if (err) {
+            console.error(err.message);
+        }
+
+        console.log("Table created or already exists.");
+    });
+})
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -133,6 +158,7 @@ const server = http.createServer(function(req, res) {
                     }
 
                     // do db stuff
+                    db.
 
                     const data = { text: textContent };
 
@@ -169,11 +195,11 @@ const server = http.createServer(function(req, res) {
 
                     return;
                 })
-
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end('Form data submittied successfully');
-            return;
         })
+    }
+
+    if (reqUrl.pathname === '/text-reader') {
+
     }
 
     if (reqUrl.pathname === '/app.js') {
@@ -211,3 +237,8 @@ const server = http.createServer(function(req, res) {
 
 const PORT = process.env.PORT || 3000
 server.listen(PORT, function() { console.log('Server running on port: ', PORT); });
+
+process.on('SIGINT', function() {
+    db.close();
+    process.exit();
+})
