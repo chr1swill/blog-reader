@@ -97,8 +97,8 @@ const server = http.createServer(function(req, res) {
                 }
 
                 res.end(str);
-            })
 
+            })
             return;
         }
 
@@ -127,22 +127,11 @@ const server = http.createServer(function(req, res) {
                     }
 
                     console.log("Sucessfully inserted values for path and text content into db");
-                })
 
-                const data = { url: formData.q, text: textContent };
+                    // Redirect to the /text-reader route to where it will read the content that was just wrote
 
-                ejs.renderFile(path.join(__dirname, "src", "templates", "views", "text-reader.ejs"), data, function(err, str) {
-                    if (err) {
-                        res.writeHead(500, { 'Content-Type': 'text/plain' });
-                        res.end('Internal Server Error');
-                        return;
-                    }
-
-                    if (!res.headersSent) {
-                        res.writeHead(200, { 'Content-Type': 'text/html' });
-                    }
-
-                    res.end(str);
+                    res.writeHead(302, { 'Location': `/text-reader?path=${encodeURIComponent(formData.q)}` });
+                    res.end();
                 })
             })
             .catch(function({ name, message }) {
@@ -168,7 +157,48 @@ const server = http.createServer(function(req, res) {
     }
 
     if (reqUrl.pathname === '/text-reader') {
+        if (req.method !== 'GET') {
+            res.writeHead(405, { 'Content-Type': 'text/plain' });
+            res.end("Method Not Allowed");
+            return;
+        }
 
+        const query = reqUrl.searchParams;
+        const pathParam = query.get('path');
+
+        if (pathParam === null || pathParam.trim() === '') {
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Bad Request');
+            return;
+        }
+
+        db.get(`SELECT text_content FROM url WHERE path = ?`, [pathParam], function(err, row) {
+            if (err) {
+                console.error(err.message);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Internal Server Error');
+                return;
+            }
+
+            if (!row) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Not Found');
+                return;
+            }
+
+            const data = { url: pathParam, content: row.text_content };
+            ejs.renderFile(path.join(__dirname, "src", "templates", "views", "text-reader.ejs"), data, function(err, str) {
+                if (err) {
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    res.end('Internal Server Error');
+                    return;
+                }
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(str);
+            });
+        });
+
+        return;
     }
 
     if (reqUrl.pathname === '/app.js') {
