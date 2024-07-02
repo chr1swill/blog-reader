@@ -147,8 +147,9 @@ const server = http.createServer(function(req, res) {
                 })
             })
             .catch(function({ name, message }) {
-                console.error(err);
                 const error = { error_message: `${name}: ${message}` };
+                console.error(error);
+
                 ejs.renderFile(path.join(__dirname, "src", "templates", "views", "error.ejs"), error, function(err, str) {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'text/plain' });
