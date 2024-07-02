@@ -74,6 +74,12 @@ const server = http.createServer(function(req, res) {
     }
 
     if (reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') {
+        if (req.method !== 'GET') {
+            res.writeHead(405, { 'Content-Type': 'text/plain' });
+            res.end('Method Not Allowed');
+            return;
+        }
+
         ejs.renderFile(path.join(__dirname, "src", "templates", "views", "index.ejs"), function(err, str) {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
