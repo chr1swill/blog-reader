@@ -16,7 +16,7 @@ const db = new sqlite3Verbose.Database('./db/test.db', function(err) {
     console.log("Connected to the SQLite database");
 });
 
-db.run(`CREATE TABLE IF NOT EXIST url (
+db.run(`CREATE TABLE IF NOT EXISTS url (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL, 
         text_content TEXT NOT NULL
