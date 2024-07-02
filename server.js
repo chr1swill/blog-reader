@@ -83,7 +83,6 @@ const server = http.createServer(function(req, res) {
 
         if (formData.q === null || !isValidUrl(formData.q) || formData.q.trim() === '') {
             console.warn("Form was submitted with an empty query");
-            res.writeHead(204, { 'Content-Type': 'text/plain' });
 
             ejs.renderFile(path.join(__dirname, "src", "templates", "views", "index.ejs"), function(err, str) {
                 if (err) {
@@ -130,7 +129,9 @@ const server = http.createServer(function(req, res) {
 
                     // Redirect to the /text-reader route to where it will read the content that was just wrote
 
-                    res.writeHead(302, { 'Location': `/text-reader?path=${encodeURIComponent(formData.q)}` });
+                    if (!res.headersSent) {
+                        res.writeHead(302, { 'Location': `/text-reader?path=${encodeURIComponent(formData.q)}` });
+                    }
                     res.end();
                 })
             })
@@ -158,7 +159,9 @@ const server = http.createServer(function(req, res) {
 
     if (reqUrl.pathname === '/text-reader') {
         if (req.method !== 'GET') {
-            res.writeHead(405, { 'Content-Type': 'text/plain' });
+            if (!res.headersSent) {
+                res.writeHead(405, { 'Content-Type': 'text/plain' });
+            }
             res.end("Method Not Allowed");
             return;
         }
@@ -167,7 +170,9 @@ const server = http.createServer(function(req, res) {
         const pathParam = query.get('path');
 
         if (pathParam === null || pathParam.trim() === '') {
-            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            if (!res.headersSent) {
+                res.writeHead(400, { 'Content-Type': 'text/plain' });
+            }
             res.end('Bad Request');
             return;
         }
@@ -175,13 +180,17 @@ const server = http.createServer(function(req, res) {
         db.get(`SELECT text_content FROM url WHERE path = ?`, [pathParam], function(err, row) {
             if (err) {
                 console.error(err.message);
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                }
                 res.end('Internal Server Error');
                 return;
             }
 
             if (!row) {
-                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                if (!res.headersSent) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain' });
+                }
                 res.end('Not Found');
                 return;
             }
@@ -189,11 +198,15 @@ const server = http.createServer(function(req, res) {
             const data = { url: pathParam, content: row.text_content };
             ejs.renderFile(path.join(__dirname, "src", "templates", "views", "text-reader.ejs"), data, function(err, str) {
                 if (err) {
-                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    }
                     res.end('Internal Server Error');
                     return;
                 }
-                res.writeHead(200, { 'Content-Type': 'text/html' });
+                if (!res.headersSent) {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                }
                 res.end(str);
             });
         });
