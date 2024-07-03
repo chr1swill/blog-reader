@@ -40,17 +40,11 @@ function serverStaticFile(res, filePath, contentType) {
             return;
         }
 
-        if (!res.headerSent) {
-            res.writeHead(200, { 'Content-Type': contentType });
-        }
+        res.writeHead(200, { 'Content-Type': contentType });
         res.end(data);
     });
 }
 
-/**
- * @param{string} url
- * @returns{boolean} 
- */
 function isValidUrl(url) {
     try {
         new URL(url);
@@ -63,21 +57,8 @@ function isValidUrl(url) {
 const server = http.createServer(function(req, res) {
     const reqUrl = new URL(req.url, `http://${req.headers.host}`);
 
-    if (reqUrl.pathname === '/submit-url') {
-        if (req.method !== 'GET') {
-            res.writeHead(405, { 'Content-Type': 'text/plain' });
-            res.end('Method Not Allowed');
-            return;
-        }
-
+    if (reqUrl.pathname === '/submit-url' && req.method === 'GET') {
         const query = reqUrl.searchParams;
-
-        /**
-         *@typedef {Object} SubmitUrlFormData
-         *@property {string} q - a url to handle or empty string 
-         */
-
-        /**@type{SubmitUrlFormData}*/
         const formData = { q: query.get('q') };
         console.log("submitted form data: \n", formData);
 
@@ -91,20 +72,16 @@ const server = http.createServer(function(req, res) {
                     return;
                 }
 
-                if (!res.headersSent) {
-                    res.writeHead(200, { 'Content-Type': 'text/html' });
-                }
-
+                res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(str);
-
-            })
+            });
             return;
         }
 
         fetch(formData.q)
             .then(function(response) {
                 if (!response.ok) {
-                    throw new Error("Failed to fetch data form provided endpoint: ", formData.q);
+                    throw new Error("Failed to fetch data from provided endpoint: ", formData.q);
                 }
 
                 return response.text();
@@ -116,63 +93,44 @@ const server = http.createServer(function(req, res) {
             })
             .then(function(textContent) {
                 if (textContent === null || textContent.trim() === '') {
-                    throw new Error("Parsing the body of the fetch document yeilded no text content: ", formData.q);
+                    throw new Error("Parsing the body of the fetched document yielded no text content: ", formData.q);
                 }
 
-                db.run(`INSERT INTO url (path, text_content) VALUES (?, ?);`, [formData.q, textContent],  function(err) {
+                db.run(`INSERT INTO url (path, text_content) VALUES (?, ?);`, [formData.q, textContent], function(err) {
                     if (err) {
                         console.error(err.message);
+                        res.writeHead(500, { 'Content-Type': 'text/plain' });
+                        res.end('Internal Server Error');
                         return;
                     }
 
-                    console.log("Sucessfully inserted values for path and text content into db");
+                    console.log("Successfully inserted values for path and text content into db");
 
-                    // Redirect to the /text-reader route to where it will read the content that was just wrote
-
-                    if (!res.headersSent) {
-                        res.writeHead(302, { 'Location': `/text-reader?path=${encodeURIComponent(formData.q)}` });
-                    }
+                    res.writeHead(302, { Location: `/text-reader?path=${encodeURIComponent(formData.q)}` });
                     res.end();
-                })
+                });
             })
-            .catch(function({ name, message }) {
-                const error = { error_message: `${name}: ${message}` };
-                console.error(error);
+            .catch(function(err) {
+                console.error(err);
 
-                ejs.renderFile(path.join(__dirname, "src", "templates", "views", "error.ejs"), error, function(err, str) {
+                ejs.renderFile(path.join(__dirname, "src", "templates", "views", "error.ejs"), { error_message: err.message }, function(err, str) {
                     if (err) {
                         res.writeHead(500, { 'Content-Type': 'text/plain' });
                         res.end('Internal Server Error');
                         return;
                     }
 
-                    if (!res.headersSent) {
-                        res.writeHead(400, { 'Content-Type': 'text/html' });
-                    }
-
+                    res.writeHead(400, { 'Content-Type': 'text/html' });
                     res.end(str);
                 });
+            });
 
-                return;
-            })
-    }
-
-    if (reqUrl.pathname === '/text-reader') {
-        if (req.method !== 'GET') {
-            if (!res.headersSent) {
-                res.writeHead(405, { 'Content-Type': 'text/plain' });
-            }
-            res.end("Method Not Allowed");
-            return;
-        }
-
+    } else if (reqUrl.pathname === '/text-reader' && req.method === 'GET') {
         const query = reqUrl.searchParams;
         const pathParam = query.get('path');
 
         if (pathParam === null || pathParam.trim() === '') {
-            if (!res.headersSent) {
-                res.writeHead(400, { 'Content-Type': 'text/plain' });
-            }
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
             res.end('Bad Request');
             return;
         }
@@ -180,17 +138,13 @@ const server = http.createServer(function(req, res) {
         db.get(`SELECT text_content FROM url WHERE path = ?`, [pathParam], function(err, row) {
             if (err) {
                 console.error(err.message);
-                if (!res.headersSent) {
-                    res.writeHead(500, { 'Content-Type': 'text/plain' });
-                }
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
                 res.end('Internal Server Error');
                 return;
             }
 
             if (!row) {
-                if (!res.headersSent) {
-                    res.writeHead(404, { 'Content-Type': 'text/plain' });
-                }
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
                 res.end('Not Found');
                 return;
             }
@@ -198,34 +152,19 @@ const server = http.createServer(function(req, res) {
             const data = { url: pathParam, content: row.text_content };
             ejs.renderFile(path.join(__dirname, "src", "templates", "views", "text-reader.ejs"), data, function(err, str) {
                 if (err) {
-                    if (!res.headersSent) {
-                        res.writeHead(500, { 'Content-Type': 'text/plain' });
-                    }
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
                     res.end('Internal Server Error');
                     return;
                 }
-                if (!res.headersSent) {
-                    res.writeHead(200, { 'Content-Type': 'text/html' });
-                }
+                res.writeHead(200, { 'Content-Type': 'text/html' });
                 res.end(str);
             });
         });
 
-        return;
-    }
-
-    if (reqUrl.pathname === '/app.js') {
+    } else if (reqUrl.pathname === '/app.js' && req.method === 'GET') {
         serverStaticFile(res, path.join(__dirname, "src", "js", 'app.js'), 'application/javascript');
-        return;
-    }
 
-    if (reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') {
-        if (req.method !== 'GET') {
-            res.writeHead(405, { 'Content-Type': 'text/plain' });
-            res.end('Method Not Allowed');
-            return;
-        }
-
+    } else if ((reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') && req.method === 'GET') {
         ejs.renderFile(path.join(__dirname, "src", "templates", "views", "index.ejs"), function(err, str) {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -233,24 +172,22 @@ const server = http.createServer(function(req, res) {
                 return;
             }
 
-            if (!res.headersSent) {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(str);
-        })
-        return;
-    }
+        });
 
-    if (!res.headersSent) {
+    } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
     }
-    res.end('Not Found');
 });
 
-const PORT = process.env.PORT || 3000
-server.listen(PORT, function() { console.log('Server running on port: ', PORT); });
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, function() {
+    console.log('Server running on port: ', PORT);
+});
 
 process.on('SIGINT', function() {
     db.close();
     process.exit();
-})
+});
