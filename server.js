@@ -96,19 +96,32 @@ const server = http.createServer(function(req, res) {
                     throw new Error("Parsing the body of the fetched document yielded no text content: ", formData.q);
                 }
 
-                db.run(`INSERT INTO url (path, text_content) VALUES (?, ?);`, [formData.q, textContent], function(err) {
+                db.get(`SELECT 1 FROM url WHERE path = ?`, [formData.q], function(err, row) {
                     if (err) {
                         console.error(err.message);
-                        res.writeHead(500, { 'Content-Type': 'text/plain' });
-                        res.end('Internal Server Error');
                         return;
                     }
 
-                    console.log("Successfully inserted values for path and text content into db");
+                    if (!row) {
+                        db.run(`INSERT INTO url (path, text_content) VALUES (?, ?);`, [formData.q, textContent], function(err) {
+                            if (err) {
+                                console.error(err.message);
+                                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                                res.end('Internal Server Error');
+                                return;
+                            }
 
-                    res.writeHead(302, { Location: `/text-reader?path=${encodeURIComponent(formData.q)}` });
-                    res.end();
+                            console.log("Successfully inserted values for path and text content into db");
+
+                            res.writeHead(302, { Location: `/text-reader?path=${encodeURIComponent(formData.q)}` });
+                            res.end();
+                        });
+                    } else {
+                        console.log("Path already exists in table url: ", formData.q);
+                    }
+
                 });
+
             })
             .catch(function(err) {
                 console.error(err);
