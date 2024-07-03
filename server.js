@@ -113,12 +113,13 @@ const server = http.createServer(function(req, res) {
                             }
 
                             console.log("Successfully inserted values for path and text content into db");
-
                             res.writeHead(302, { Location: `/text-reader?path=${encodeURIComponent(formData.q)}` });
                             res.end();
                         });
                     } else {
                         console.log("Path already exists in table url: ", formData.q);
+                        res.writeHead(302, { Location: `/text-reader?path=${encodeURIComponent(formData.q)}` });
+                        res.end();
                     }
 
                 });
