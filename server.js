@@ -96,6 +96,7 @@ const server = http.createServer(function(req, res) {
                     throw new Error("Parsing the body of the fetched document yielded no text content: ", formData.q);
                 }
 
+                // somehting here is causing queries to hang holding up everything proably some async bs
                 db.get(`SELECT 1 FROM url WHERE path = ?`, [formData.q], function(err, row) {
                     if (err) {
                         console.error(err.message);
