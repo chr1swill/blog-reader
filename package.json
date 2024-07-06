@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "main": "server.js",
     "scripts": {
-        "dev:watch": "npx nodemon --watch src -e js,css,html,ejs server.js"
+        "dev:watch": "npx nodemon --watch src server.js -e js,css,html,ejs server.js"
     },
     "keywords": [],
     "author": "",
